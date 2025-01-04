@@ -1,26 +1,48 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
 
-const userRoutes = require('./routes/user');
+const http = require('http');
+const app = require('./app');
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+const normalizePort = val => {
+  const port = parseInt(val, 10);
 
-app.use('/api/auth', userRoutes);
+  if (isNaN(port)) {
+    return val;
+  }
+  if (port >= 0) {
+    return port;
+  }
+  return false;
+};
+const port = normalizePort(process.env.PORT || '4000');
+app.set('port', port);
 
-// Connexion à MongoDB
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('Connexion réussie à MongoDB !'))
-    .catch(err => console.error('Connexion à MongoDB échouée !', err));
+const errorHandler = error => {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+  const address = server.address();
+  const bind = typeof address === 'string' ? 'pipe ' + address : 'port: ' + port;
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges.');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use.');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+};
 
-// Écoutez sur le port
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, (err) => {
-    if (err) {
-        return console.error('Erreur lors de l\'écoute du port :', err);
-    }
-    console.log(`Listening on port ${PORT}`);
+const server = http.createServer(app);
+
+server.on('error', errorHandler);
+server.on('listening', () => {
+  const address = server.address();
+  const bind = typeof address === 'string' ? 'pipe ' + address : 'port ' + port;
+  console.log('Listening on ' + bind);
 });
+
+server.listen(port);

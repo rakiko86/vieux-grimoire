@@ -8,8 +8,8 @@ exports.signup = (req, res, next) => {
     const password = req.body.password;
     
     // Vérification de la longueur du mot de passe
-    if (password.length < 10) {
-        return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 10 caractères.' });
+    if (password.length < 8) {
+        return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 8 caractères.' });
     }
     
     // Vérification des caractères spécifiques
@@ -18,7 +18,7 @@ exports.signup = (req, res, next) => {
         return res.status(400).json({ error: 'Le mot de passe doit contenir au moins une majuscule, un chiffre et un caractère spécial.' });
     }
 
-    bcrypt.hash(password, 10)
+    bcrypt.hash(password, 8)
         .then(hash => {
             const user = new User({
                 email: req.body.email,
