@@ -90,22 +90,26 @@ exports.modifyBook = (req, res, next) => {
  };
 
 // Ajouter une note à un livre
-exports.addRating = async (req, res) => {
+exports.ratingBook = async (req, res, next) => {
     try {
-        const { grade } = req.body;
+        const  grade  = req.body.rating;
+        console.log(grade);
 
         if (grade < 0 || grade > 5) {
             return res.status(400).json({ message: "La note doit être comprise entre 0 et 5." });
         }
-
-        const book = await Book.findById(req.params.id);
+console.log(req.auth);
+        const book = await Book.findById({ _id: req.params.id})
+        ;
+       
         if (!book) {
             return res.status(404).json({ message: "Livre non trouvé." });
         }
 
         book.ratings.push({ userId: req.auth.userId, grade });
-        book.averageRating =
-            book.ratings.reduce((sum, rating) => sum + rating.grade, 0) / book.ratings.length;
+        console.log(book);
+        // book.averageRating =
+        //     book.ratings.reduce((sum, rating) => sum + rating.grade, 0) / book.ratings.length;
 
         await book.save();
         res.status(200).json({ message: "Note ajoutée avec succès.", book });
