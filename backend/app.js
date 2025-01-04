@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
+const cors = require('cors'); 
 require("dotenv").config();
 
 const bookRoutes = require('./routes/books');
@@ -8,7 +9,7 @@ const userRoutes = require('./routes/user');
 
 // Création d'une application Express //
 const app = express();
-/ CORS //
+//CORS //
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content, Accept, Content-Type, Authorization');
