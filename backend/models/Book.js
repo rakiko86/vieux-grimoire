@@ -17,4 +17,4 @@ const bookSchema = new mongoose.Schema({
   bestRating: { type: Number, default: 0 }, // Ajout pour la meilleure note
 });
 
-const Book = mongoose.model('Book', bookSchema);
+module.exports = mongoose.model('Book', bookSchema);

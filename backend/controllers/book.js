@@ -1,6 +1,16 @@
 const Book = require("../models/Book");
 const fs = require("fs");
 
+// Fonction utilitaire pour supprimer une image
+const deleteImage = (filename) => {
+    return new Promise((resolve, reject) => {
+        fs.unlink(`images/${filename}`, (error) => {
+            if (error) reject(error);
+            resolve();
+        });
+    });
+};
+
 // Créer un livre
 exports.createBook = (req, res, next) => {
     let bookObject;
@@ -11,11 +21,9 @@ exports.createBook = (req, res, next) => {
     } catch (error) {
         if (req.file) {
             // Si une image a été téléchargée mais que le JSON est invalide, supprimer l'image
-            fs.unlink(`images/${req.file.filename}`, () => { });
+            deleteImage(req.file.filename).catch(() => {});
         }
-        return res
-            .status(400)
-            .json({ message: "Données JSON invalides dans le corps de la requête" });
+        return res.status(400).json({ message: "Données JSON invalides dans le corps de la requête" });
     }
 
     // Supprimer les champs inutiles
@@ -28,21 +36,20 @@ exports.createBook = (req, res, next) => {
     }
 
     // Créer un objet book
-    const book = new Book({
+    const newBook = new Book({
         ...bookObject,
         userId: req.auth.userId,
-        imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename
-            }`,
+        imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename}`,
     });
 
     // Sauvegarder dans la base de données
-    book
+    newBook
         .save()
         .then(() => res.status(201).json({ message: "Livre enregistré !" }))
         .catch((error) => {
             // Supprimer l'image en cas d'erreur
             if (req.file) {
-                fs.unlink(`images/${req.file.filename}`, () => { });
+                deleteImage(req.file.filename).catch(() => {});
             }
             res.status(400).json({ error });
         });
@@ -70,15 +77,14 @@ exports.modifyBook = (req, res, next) => {
         updateBook = req.file
             ? {
                 ...JSON.parse(req.body.book),
-                imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename
-                    }`,
+                imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename}`,
             }
             : { ...req.body };
 
         delete updateBook._userId;
     } catch (error) {
         if (req.file) {
-            fs.unlink(`images/${req.file.filename}`, () => { });
+            deleteImage(req.file.filename).catch(() => {});
         }
         return res.status(400).json({ message: "Format invalide du livre" });
     }
@@ -93,8 +99,10 @@ exports.modifyBook = (req, res, next) => {
             // Supprimer l'ancienne image si une nouvelle image est envoyée
             if (req.file) {
                 const oldFilename = book.imageUrl.split("/images/")[1];
-                fs.unlink(`images/${oldFilename}`, () => {
+                deleteImage(oldFilename).then(() => {
                     updateBookInDatabase();
+                }).catch(() => {
+                    res.status(500).json({ message: "Erreur lors de la suppression de l'image" });
                 });
             } else {
                 updateBookInDatabase();
@@ -112,6 +120,8 @@ exports.modifyBook = (req, res, next) => {
             .catch((error) => res.status(400).json({ error }));
     };
 };
+
+// Ajouter une note à un livre
 exports.addRating = async (req, res, next) => {
     try {
         const { grade } = req.body;
@@ -148,7 +158,7 @@ exports.addRating = async (req, res, next) => {
 
         // Mettre à jour le livre
         book.averageRating = averageRating;
-        book.bestRating = bestRating; // Nouveau champ à ajouter au modèle, si souhaité
+        book.bestRating = bestRating;
         await book.save();
 
         res.status(200).json({ message: "Note ajoutée avec succès.", book });
@@ -156,6 +166,8 @@ exports.addRating = async (req, res, next) => {
         res.status(500).json({ error });
     }
 };
+
+// Obtenir les statistiques d'un livre
 exports.getBookStats = async (req, res, next) => {
     try {
         const book = await Book.findById(req.params.id);
@@ -183,10 +195,12 @@ exports.deleteBook = (req, res, next) => {
             }
 
             const filename = book.imageUrl.split("/images/")[1];
-            fs.unlink(`images/${filename}`, () => {
+            deleteImage(filename).then(() => {
                 Book.deleteOne({ _id: req.params.id })
                     .then(() => res.status(200).json({ message: "Livre supprimé !" }))
                     .catch((error) => res.status(401).json({ error }));
+            }).catch(() => {
+                res.status(500).json({ message: "Erreur lors de la suppression de l'image" });
             });
         })
         .catch((error) => res.status(500).json({ error }));
@@ -196,5 +210,8 @@ exports.deleteBook = (req, res, next) => {
 exports.getAllBooks = (req, res, next) => {
     Book.find()
         .then((books) => res.status(200).json(books))
-        .catch((error) => res.status(400).json({ error }));
+        .catch((error) => {
+            console.error('Erreur dans getAllBooks:', error);
+            res.status(500).json({ error: error.message });
+        });
 };
