@@ -16,7 +16,7 @@ const bookSchema = new mongoose.Schema({
   averageRating: { type: Number, default: 0 },
   bestRating: { type: Number, default: 0 }, // Ajout pour la meilleure note
 });
-// Fonction pour calculer la moyenne
+//Fonction pour calculer la moyenne
 const averageRating = async (book) => {
     if (book.ratings && book.ratings.length > 0) { // Vérifie si des notes existent
         const totalNotes = book.ratings.reduce((total, rating) => total + rating.grade, 0); // Calcule la somme des notes

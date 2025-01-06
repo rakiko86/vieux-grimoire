@@ -1,5 +1,7 @@
+
 const Book = require("../models/Book");
 const fs = require("fs");
+
 
 // Fonction utilitaire pour supprimer une image
 const deleteImage = (filename) => {
@@ -88,58 +90,7 @@ exports.modifyBook = (req, res, next) => {
             res.status(400).json({ error });
         });
  };
-
-// Ajouter une note à un livre
-exports.ratingBook = async (req, res, next) => {
-    try {
-        const  grade  = req.body.rating;
-        console.log(grade);
-
-        if (grade < 0 || grade > 5) {
-            return res.status(400).json({ message: "La note doit être comprise entre 0 et 5." });
-        }
-console.log(req.auth);
-        const book = await Book.findById({ _id: req.params.id})
-        ;
-       
-        if (!book) {
-            return res.status(404).json({ message: "Livre non trouvé." });
-        }
-
-        book.ratings.push({ userId: req.auth.userId, grade });
-        console.log(book);
-        // book.averageRating =
-        //     book.ratings.reduce((sum, rating) => sum + rating.grade, 0) / book.ratings.length;
-
-        await book.save();
-        res.status(200).json({ message: "Note ajoutée avec succès.", book });
-    } catch (error) {
-        res.status(500).json({ error });
-    }
-};
-
-// Obtenir les statistiques d'un livre
-exports.getBookStats = async (req, res) => {
-    try {
-        const book = await Book.findById(req.params.id);
-        if (!book) {
-            return res.status(404).json({ message: "Livre non trouvé." });
-        }
-
-        const totalRatings = book.ratings.length;
-        const averageRating =
-            totalRatings > 0
-                ? book.ratings.reduce((sum, rating) => sum + rating.grade, 0) / totalRatings
-                : 0;
-        const bestRating =
-            totalRatings > 0 ? Math.max(...book.ratings.map((rating) => rating.grade)) : 0;
-
-        res.status(200).json({ averageRating, bestRating, totalRatings });
-    } catch (error) {
-        res.status(500).json({ error });
-    }
-};
-
+ 
 // Supprimer un livre
 exports.deleteBook = async (req, res) => {
     try {
@@ -166,4 +117,50 @@ exports.getAllBooks = async (req, res) => {
     } catch (error) {
         res.status(500).json({ error });
     }
+};
+// Noter un livre
+exports.rateBook = async (req, res) => {
+    try {
+        const { userId } = req.auth; // Récupération de l'utilisateur authentifié
+        const { rating } = req.body; // Note fournie dans la requête
+
+        // Vérification de la validité de la note
+        if (rating < 0 || rating > 5) {
+            return res.status(400).json({ message: "La note doit se trouver entre 0 et 5." });
+        }
+
+        // Recherche du livre
+        const book = await Book.findById(req.params.id);
+        if (!book) {
+            return res.status(404).json({ message: "Livre non trouvé." });
+        }
+
+        // Vérification si l'utilisateur a déjà noté ce livre
+        if (book.ratings.some((r) => r.userId === userId)) {
+            return res.status(400).json({ message: "Vous avez déjà noté ce livre." });
+        }
+
+        // Ajout de la nouvelle note et recalcul de la moyenne
+        book.ratings.push({ userId, grade: rating });
+        const totalRating = book.ratings.reduce((sum, r) => sum + r.grade, 0);
+        book.averageRating = totalRating / book.ratings.length;
+
+        // Sauvegarde du livre avec les nouvelles données
+        const updatedBook = await book.save();
+
+        res.status(201).json(updatedBook);
+    } catch (error) {
+        console.error("Erreur lors de la notation du livre :", error);
+        res.status(500).json({ message: "Erreur serveur", error: error.message });
+    }
+};
+
+// 
+
+exports.getBestRatedBooks= (req, res, next) => {
+    Book.find()
+    .sort({ averageRating: -1 })
+    .limit(3)
+    .then(books => res.status(200).json(books))
+    .catch(error => res.status(400).json({ error }));
 };
