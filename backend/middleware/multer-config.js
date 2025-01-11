@@ -1,56 +1,57 @@
 const multer = require('multer');
+const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
 
-// Types MIME autorisés
-const MIME_TYPES = {
-  'image/jpg': 'jpg',
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/svg+xml': 'svg',
-  'image/webp': 'webp'
-};
-
-// Configuration du stockage
+// Configuration du stockage des fichiers
 const storage = multer.diskStorage({
-  destination: (req, file, callback) => {
-    const uploadDir = 'images';
-    // Vérifie si le répertoire existe, sinon le crée
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    destination: (req, file, callback) => {
+        callback(null, 'images');
+    },
+    filename: (req, file, callback) => {
+        const name = file.originalname.split(' ').join('_');
+        callback(null, name + Date.now() + '.webp');
     }
-    callback(null, uploadDir);
-  },
-  filename: (req, file, callback) => {
-    // Nettoie le nom de fichier
-    const name = file.originalname
-      .toLowerCase()
-      .split(' ')
-      .join('_')
-      .replace(/[^a-z0-9_\-\.]/gi, ''); // Supprime les caractères spéciaux
-
-    // Détermine l'extension
-    const extension = MIME_TYPES[file.mimetype];
-    if (!extension) {
-      return callback(new Error('Type de fichier non autorisé'), false);
-    }
-
-    // Génère un nom unique
-    callback(null, `${name}_${Date.now()}.${extension}`);
-  }
 });
 
-// Middleware multer avec filtre de type de fichier
-const fileFilter = (req, file, callback) => {
-  if (MIME_TYPES[file.mimetype]) {
-    callback(null, true);
-  } else {
-    callback(new Error('Type de fichier non supporté'), false);
-  }
+// Filtrage des fichiers pour accepter uniquement les images
+const filter = (req, file, callback) => {
+    if (file.mimetype.split("/")[0] === 'image') {
+        callback(null, true);
+    } else {
+        callback(new Error("Les fichiers ne peuvent être que des images"));
+    }
 };
 
-module.exports = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // Limite la taille à 5 Mo
-}).single('image');
+// Middleware pour l'upload de l'image
+const upload = multer({ storage: storage, fileFilter: filter }).single('image');
+
+// Optimisation de l'image
+const optimize = (req, res, next) => {
+    if (req.file) {
+        const filePath = req.file.path;
+        const output = path.join('images', `opt_${req.file.filename}`);
+        
+        sharp(filePath)
+            .resize({ width: null, height: 400, fit: 'inside', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+            .webp()
+            .toFile(output)
+            .then(() => {
+                fs.unlink(filePath, (err) => {
+                    if (err) {
+                        return next(err);
+                    }
+                    req.file.path = output;
+                    next();
+                });
+            })
+            .catch(err => next(err));
+    } else {
+        return next();
+    }
+};
+
+module.exports = {
+    upload,
+    optimize,
+};

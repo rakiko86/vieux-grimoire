@@ -40,7 +40,8 @@ exports.createBook = async (req, res) => {
     const newBook = new Book({
         ...bookObject,
         userId: req.auth.userId,
-        imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename}`,
+        imageUrl: `${req.protocol}://${req.get('host')}/images/opt_${req.file.filename}`
+,
     });
 
     try {
@@ -72,7 +73,8 @@ exports.getOneBook = async (req, res) => {
 exports.modifyBook = (req, res, next) => {
     const bookObject = req.file ? {
         ...JSON.parse(req.body.book),
-        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+        imageUrl: `${req.protocol}://${req.get('host')}/images/opt_${req.file.filename}`
+
     } : { ...req.body };
   
     delete bookObject._userId;
@@ -118,6 +120,7 @@ exports.getAllBooks = async (req, res) => {
         res.status(500).json({ error });
     }
 };
+
 // Noter un livre
 exports.rateBook = async (req, res) => {
     try {
@@ -155,7 +158,7 @@ exports.rateBook = async (req, res) => {
     }
 };
 
-// 
+// Obtenir les 3 livres les mieux notés
 
 exports.getBestRatedBooks= (req, res, next) => {
     Book.find()
