@@ -33,7 +33,7 @@ const optimize = (req, res, next) => {
         const output = path.join('images', `opt_${req.file.filename}`);
         
         sharp(filePath)
-            .resize({ width: null, height: 400, fit: 'inside', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+            .resize({ width: null, height: 568, fit: 'cover', background: { r: 255, g: 255, b: 255, alpha: 0 } })
             .webp()
             .toFile(output)
             .then(() => {
