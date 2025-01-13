@@ -29,19 +29,21 @@ const upload = multer({ storage: storage, fileFilter: filter }).single('image');
 // Optimisation de l'image
 const optimize = (req, res, next) => {
     if (req.file) {
-        const filePath = req.file.path;
-        const output = path.join('images', `opt_${req.file.filename}`);
-        
+        const filePath = req.file.path; // Chemin de l'ancienne image
+        const output = path.join('images', `opt_${req.file.filename}`); // Nouveau nom pour l'image optimisée
+
         sharp(filePath)
             .resize({ width: null, height: 568, fit: 'cover', background: { r: 255, g: 255, b: 255, alpha: 0 } })
             .webp()
-            .toFile(output)
+            .toFile(output) // Écrire l'optimisée avec un nouveau nom
             .then(() => {
+                // Supprimer l'ancienne image après avoir réussi à créer l'image optimisée
                 fs.unlink(filePath, (err) => {
                     if (err) {
                         return next(err);
                     }
-                    req.file.path = output;
+                    console.log('Ancienne image supprimée :', filePath);
+                    req.file.path = output; // Met à jour le chemin vers l'image optimisée
                     next();
                 });
             })
@@ -50,7 +52,6 @@ const optimize = (req, res, next) => {
         return next();
     }
 };
-
 module.exports = {
     upload,
     optimize,
