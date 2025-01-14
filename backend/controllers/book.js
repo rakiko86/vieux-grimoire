@@ -91,8 +91,8 @@ exports.modifyBook = (req, res, next) => {
         .catch((error) => {
             res.status(400).json({ error });
         });
-};
-
+ };
+ 
 // Supprimer un livre
 exports.deleteBook = async (req, res) => {
     try {
@@ -100,19 +100,17 @@ exports.deleteBook = async (req, res) => {
         if (book.userId !== req.auth.userId) {
             return res.status(401).json({ message: "Non autorisé." });
         }
-        
-        // Vérification de l'existence de l'URL de l'image
-        if (book.imageUrl) {
-            const filename = book.imageUrl.split("/images/")[1];
-            await deleteImage(filename);
-        }
 
+        const filename = book.imageUrl.split("/images/")[1];
+        await deleteImage(filename);
         await Book.deleteOne({ _id: req.params.id });
+
         res.status(200).json({ message: "Livre supprimé !" });
     } catch (error) {
         res.status(500).json({ error });
     }
 };
+
 // Obtenir tous les livres
 exports.getAllBooks = async (req, res) => {
     try {
@@ -162,13 +160,10 @@ exports.rateBook = async (req, res) => {
 
 // Obtenir les 3 livres les mieux notés
 
-exports.getBestRatedBooks = (req, res, next) => {
-    console.log("Function called")
-    const BookId = req.params.id; // Assurez-vous de récupérer l'ID du livre actuel depuis les paramètres de la requête.
-    console.log("Current Book ID:", BookId)
-    Book.find({ _id: { $ne: BookId } }) // Exclut le livre courant en utilisant $ne (not equals)
-        .sort({ averageRating: -1 })
-        .limit(3)
-        .then(books => res.status(200).json(books))
-        .catch(error => res.status(400).json({ error }));
+exports.getBestRatedBooks= (req, res, next) => {
+    Book.find()
+    .sort({ averageRating: -1 })
+    .limit(3)
+    .then(books => res.status(200).json(books))
+    .catch(error => res.status(400).json({ error }));
 };

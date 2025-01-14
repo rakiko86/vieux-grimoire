@@ -6,6 +6,8 @@ const booksCtrl = require('../controllers/book');
 
 
 router.get('/bestrating', booksCtrl.getBestRatedBooks); // les meileurs notés //
+
+
 router.post('/', auth, upload, optimize, booksCtrl.createBook); // Créer livre //
 router.post('/:id/rating', auth, booksCtrl.rateBook); // Noter livre //
 router.put('/:id', auth, upload, optimize, booksCtrl.modifyBook); // MAJ livre //
